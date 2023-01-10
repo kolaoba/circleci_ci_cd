@@ -9,45 +9,59 @@ executors:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  save_hello_world_output:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
-    executor: my-executor
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
-    steps:
-      - checkout
-      - run: mkdir /tmp/workspace
-      - run:
-          name: "Save hello world to file"
-          command: echo "Hello World" > /tmp/workspace/output.txt
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths: 
-              - output.txt
+  create_infrastructure: 
+      docker:
+        - image: amazon/aws-cli
+      steps:
+        - checkout
+        - run:
+            name: Create Cloudformation Stack
+            command: |
+              aws cloudformation deploy \
+                --template-file template.yml \
+                --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
+                --region us-east-1
+
+  # save_hello_world_output:
+  #   # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+  #   # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+  #   executor: my-executor
+  #   # Add steps to the job
+  #   # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+  #   steps:
+  #     - checkout
+  #     - run: mkdir /tmp/workspace
+  #     - run:
+  #         name: "Save hello world to file"
+  #         command: echo "Hello World" > /tmp/workspace/output.txt
+  #     - persist_to_workspace:
+  #         root: /tmp/workspace
+  #         paths: 
+  #             - output.txt
   
-  print_output_file:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
-    executor: my-executor
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - run: |
-          if [[ `cat /tmp/workspace/output.txt` == "Hello World" ]]; then
-              echo "It worked!";
-          else
-              echo "Nope, not yet!"; exit 1
-          fi
+  # print_output_file:
+  #   # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+  #   # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+  #   executor: my-executor
+  #   # Add steps to the job
+  #   # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+  #   steps:
+  #     - attach_workspace:
+  #         at: /tmp/workspace
+  #     - run: |
+  #         if [[ `cat /tmp/workspace/output.txt` == "Hello World" ]]; then
+  #             echo "It worked!";
+  #         else
+  #             echo "Nope, not yet!"; exit 1
+  #         fi
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   print-hello-workflow:
     jobs:
-      - save_hello_world_output
-      - print_output_file:
-          requires:
-            - save_hello_world_output
+      - create_infrastructure
+      # - save_hello_world_output
+      # - print_output_file:
+      #     requires:
+      #       - save_hello_world_output
